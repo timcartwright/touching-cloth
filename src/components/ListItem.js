@@ -10,8 +10,8 @@ const ListItem = styled.li`
     padding: 16px;
 
     &:nth-child(even) {
-		background: #444;
-	}
+		  background: #444;
+	  }
 `
 
 export default ListItem;

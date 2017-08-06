@@ -5,30 +5,41 @@ import ListItem from './ListItem';
 import Streak from './Streak';
 import InlineFlex from './InlineFlex';
 
-const Leaderboard = ({currentUser, isSelectingOpponent, leaderboard, selectOpponent}) => {
+const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponent}) => {
 
     const StyledList = styled(List)`
         box-shadow: ${isSelectingOpponent ? '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)' : 'none'};
-        cursor: ${isSelectingOpponent ? 'pointer' : 'initial'};
         margin: 0 auto;
         max-width: 320px;
     `
 
+    const StyledListItem = styled(ListItem)`
+        ${props => props.link && `
+            cursor: pointer;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        `}
+    `
+
     return (
         <StyledList>
-            {leaderboard.map(player => {
-                const {fname, lname, streak} = player;
+            {players.map(player => {
+                const {displayName, key, streak} = player;
+                const isCurrentPlayer = currentPlayer.key === player.key;
 
                 return (
-                    <ListItem
-                        key={fname}
-                        onClick={isSelectingOpponent && selectOpponent.bind(null, player)}
+                    <StyledListItem
+                        link={isSelectingOpponent && !isCurrentPlayer}
+                        key={key}
+                        onClick={isSelectingOpponent && !isCurrentPlayer && selectOpponent.bind(null, player)}
                     >
-                        <span>{fname} {lname}</span>
+                        <span>{displayName}</span>
                         <InlineFlex>
-                            <Streak streak={streak} />
+                            {streak && <Streak streak={streak} />}
                         </InlineFlex>
-                    </ListItem>
+                    </StyledListItem>
                 )
             })}
         </StyledList>

@@ -1,10 +1,14 @@
 import React, { Component } from 'react';
+import Rebase  from 're-base';
+import fire from './fire';
+import firebase from 'firebase';
 import Header from './components/Header';
 import PageTitle from './components/PageTitle';
 import Button from './components/Button';
 import Section from './components/Section';
 import Wrap from './components/Wrap';
 import Leaderboard from './components/Leaderboard';
+import Login from './components/Login';
 import constants from './constants';
     
 class App extends Component {
@@ -13,101 +17,259 @@ class App extends Component {
     super(props);
 
     this.state = {
-      currentUser: {
-        fname: 'Tim',
-        lname: 'Cartwright'
-      },
-      leaderboard: [
-        {
-          fname: 'Spike',
-          lname: 'Bowen',
-          streak: ['W', 'L', 'W', 'W', 'W']
-        },
-        {
-          fname: 'James',
-          lname: 'Clifton',
-          streak: ['W', 'L', 'W', 'W', 'L']
-        },
-        {
-          fname: 'Tim',
-          lname: 'Cartwright',
-          streak: ['W', 'L', 'L', 'L', 'W']
-        },
-      ],
-      selectOpponent: null,
-      stateOfPlay: constants.INACTIVE
+      currentPlayer: null,
+      players: [],
+      loading: true
     };
   }
 
-  handleButtonClick() {
-    let stateOfPlay;
+  componentDidMount() {
+    this.bindPlayersToFirebase();
+  }
 
-    switch(this.state.stateOfPlay) {
-    case constants.INACTIVE:
-        stateOfPlay = constants.SELECTING_OPPONENT;
-        break;
-    case constants.SELECTING_OPPONENT:
-        stateOfPlay = constants.INACTIVE;
-        break;
-    case constants.SELECTED_OPPONENT:
-        stateOfPlay = constants.INACTIVE;
-        break;
+  componentWillUpdate(nextProps, nextState) {
+    if (!this.state.players.length) {
+      this.listenForAuth(nextState.players);
     }
+  }
 
-    this.setState({stateOfPlay});
+  listenForAuth(players) {
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        let currentPlayer = players.find(player => player.email === user.email);
+        console.log('Logged in', user);
+
+        if (!currentPlayer) {
+            console.log('Adding new player');
+
+            currentPlayer = {
+              displayName: user.displayName,
+              email: user.email,
+              playingState: constants.INACTIVE,
+            }
+
+            this.addNewPlayer(currentPlayer)
+            .then(key => {
+              this.syncCurrentPlayerWithFirebase(key);
+            });
+        } else {
+          this.syncCurrentPlayerWithFirebase(currentPlayer.key);
+        }
+      }
+    });
+  }
+
+  handleButtonClick() {
+    const {currentPlayer} = this.state;
+    let {opponent} = currentPlayer;
+    let playingState;
+
+    switch(currentPlayer.playingState) {
+    case constants.INACTIVE:
+        playingState = constants.SELECTING_OPPONENT;
+        break;
+
+    case constants.SELECTING_OPPONENT:
+        playingState = constants.INACTIVE;
+        break;
+
+    case constants.HAS_SELECTED_OPPONENT:
+        playingState = constants.INACTIVE;
+        this.updatePlayingState(opponent, playingState);
+        break;
+
+    case constants.HAS_BEEN_SELECTED:
+        playingState = constants.PLAYING;
+        this.updatePlayingState(opponent, playingState);
+        break;
+
+    case constants.PLAYING:
+        playingState = constants.HAS_DECLARED_RESULT;
+        this.updatePlayingState(opponent, constants.SHOULD_CONFIRM_RESULT);
+        break;
+
+    case constants.HAS_DECLARED_RESULT:
+      playingState = constants.PLAYING;
+      this.updatePlayingState(opponent, constants.PLAYING);
+      break;
+
+    case constants.SHOULD_CONFIRM_RESULT:
+      playingState = constants.INACTIVE;
+      this.updatePlayer({
+        ...opponent,
+        playingState,
+        streak: opponent.streak ? [...opponent.streak, 'W'] : ['W']
+      });
+
+      this.setState({
+        currentPlayer: {
+          ...currentPlayer,
+          playingState,
+          streak: currentPlayer.streak ? [...currentPlayer.streak, 'L'] : ['L']
+        }
+      });
+
+      this.saveResult(opponent, currentPlayer);
+      return;
+      break;
+
+    }
+    console.log(currentPlayer, playingState);
+    this.setState({
+      currentPlayer: {...currentPlayer, playingState}
+    });
+  }
+
+  handleLogOut() {
+    firebase.auth().signOut().then(() => {
+      fire.removeBinding(this.refSyncCurrent);
+      this.setState({currentPlayer: null});
+    }).catch(error => {
+      // An error happened.
+    });
   }
 
   handleSelectOpponent() {
     this.setState({stateOfPlay: constants.SELECTING_OPPONENT});
   }
 
-  selectOpponent(selectOpponent) {
+  selectOpponent(opponent) {
+    const {currentPlayer} = this.state;
+    delete opponent.opponent;
+
     this.setState({
-      selectOpponent,
-      stateOfPlay: constants.SELECTED_OPPONENT
+      currentPlayer: {
+        ...currentPlayer,
+        playingState: constants.HAS_SELECTED_OPPONENT,
+        opponent
+      }
+    });
+
+    this.updatePlayer({
+      ...opponent,
+      playingState: constants.HAS_BEEN_SELECTED,
+      opponent: currentPlayer
+    })
+  }
+
+  async addNewPlayer(player) {
+      var immediatelyAvailableReference = fire.push('players', {
+          data: player
+      });
+      //available immediately, you don't have to wait for the callback to be called
+      return immediatelyAvailableReference.key;
+  }
+
+  updatePlayer(player) {
+      fire.update('players/' + player.key, {
+        data: player,
+        then(err){
+          if(!err){
+            console.log('updated');
+          }
+        }
+      });
+  }
+  
+  updatePlayingState(player, playingState) {
+      this.updatePlayer({
+          ...player,
+          playingState
+      }) 
+  }
+
+  saveResult(won, lost) {
+      var immediatelyAvailableReference = fire.push('matches', {
+          data: {won, lost}
+      });
+      //available immediately, you don't have to wait for the callback to be called
+      return immediatelyAvailableReference.key;
+  }
+
+  syncCurrentPlayerWithFirebase(ref) {
+    this.refSyncCurrent = fire.syncState('players/' + ref, {
+      context: this,
+      state: 'currentPlayer',
+      then(err){
+        if(!err){
+          this.setState({currentPlayer:
+            {...this.state.currentPlayer, key: ref}
+          })
+        }
+      }
     });
   }
 
+  bindPlayersToFirebase() {
+    const ref = fire.bindToState('players', {
+      context: this,
+      state: 'players',
+      asArray: true
+    })
+  }
+
   render() {
-    const {currentUser, stateOfPlay, leaderboard, selectOpponent} = this.state;
+    const {currentPlayer, players} = this.state;
     let introText, buttonText;
 
-    switch(stateOfPlay) {
+    if (!currentPlayer) {
+      return <Login />;
+    }
+
+
+
+    switch(currentPlayer.playingState) {
     case constants.SELECTING_OPPONENT:
         introText = 'Select your opponent';
         buttonText = 'Cancel';
         break;
-    case constants.SELECTED_OPPONENT:
-        introText = `Waiting for ${selectOpponent.fname}`;
+    case constants.HAS_SELECTED_OPPONENT:
+        introText = `Waiting for ${currentPlayer.opponent.displayName}`;
         buttonText = 'Cancel Request';
         break;
-    // case constants.SELECTED_OPPONENT:
-    //     introText = 'Cancel match';
-    //     break;
+    case constants.HAS_BEEN_SELECTED:
+        introText = `${currentPlayer.opponent.displayName} wants to play you`;
+        buttonText = 'Play';
+        break;
+    case constants.PLAYING:
+        introText = `You are playing ${currentPlayer.opponent.displayName}`;
+        buttonText = 'I won';
+        break;
+    case constants.HAS_DECLARED_RESULT:
+      introText = `Waiting for ${currentPlayer.opponent.displayName} to confirm you won`;
+      buttonText = 'Withdraw result';
+      break;
+    case constants.SHOULD_CONFIRM_RESULT:
+      introText = `Please confirm that you lost to ${currentPlayer.opponent.displayName}`;
+      buttonText = 'Yes I lost';
+      break;
     default:
-        introText = `Hi ${currentUser.fname}`;
-        buttonText = 'Request a Game';
+        introText = `Hi ${currentPlayer.displayName}`;
+        buttonText = 'Propose a Game';
     }
 
     return (
       <Wrap>
         <Header>
           <PageTitle>Touching Fire</PageTitle>
+          <p onClick={this.handleLogOut.bind(this)}>
+            Log out
+          </p>
         </Header>
         <Section intro>
           {introText}
         </Section>
-        <Leaderboard
-          currentUser={currentUser}
-          isSelectingOpponent={stateOfPlay === constants.SELECTING_OPPONENT}
-          leaderboard={leaderboard}
-          selectOpponent={this.selectOpponent.bind(this)}
-        />
         <Section actions>
           <Button onClick={this.handleButtonClick.bind(this)}>
             {buttonText}
           </Button>
         </Section>
+        <Leaderboard
+          currentPlayer={currentPlayer}
+          isSelectingOpponent={currentPlayer.playingState === constants.SELECTING_OPPONENT}
+          players={players}
+          selectOpponent={this.selectOpponent.bind(this)}
+        />
       </Wrap>
     );
   } 
