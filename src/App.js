@@ -18,44 +18,48 @@ class App extends Component {
 
     this.state = {
       currentPlayer: null,
-      players: [],
+      players: null,
       loading: true
     };
   }
 
   componentDidMount() {
-    this.bindPlayersToFirebase();
+    this.fetchPlayersFromFirebase()
+    .then(players => {
+      this.setState({players}, () => {
+        this.listenForAuth();
+        this.bindPlayersToFirebase();
+        this.setState({loading: false});
+      })
+    })
   }
 
-  componentWillUpdate(nextProps, nextState) {
-    if (!this.state.players.length) {
-      this.listenForAuth(nextState.players);
-    }
-  }
-
-  listenForAuth(players) {
+  listenForAuth() {
     firebase.auth().onAuthStateChanged(user => {
-      if (user) {
-        let currentPlayer = players.find(player => player.email === user.email);
-        console.log('Logged in', user);
+      this.fetchPlayersFromFirebase()
+      .then(players => {
+        if (user) {
+          let currentPlayer = players.find(player => player.email === user.email);
+          console.log('Logged in', user, players);
 
-        if (!currentPlayer) {
-            console.log('Adding new player');
+          if (!currentPlayer) {
+              console.log('Adding new player');
 
-            currentPlayer = {
-              displayName: user.displayName,
-              email: user.email,
-              playingState: constants.INACTIVE,
-            }
+              currentPlayer = {
+                displayName: user.displayName,
+                email: user.email,
+                playingState: constants.INACTIVE,
+              }
 
-            this.addNewPlayer(currentPlayer)
-            .then(key => {
-              this.syncCurrentPlayerWithFirebase(key);
-            });
-        } else {
-          this.syncCurrentPlayerWithFirebase(currentPlayer.key);
+              this.addNewPlayer(currentPlayer)
+              .then(key => {
+                this.syncCurrentPlayerWithFirebase(key);
+              });
+          } else {
+            this.syncCurrentPlayerWithFirebase(currentPlayer.key);
+          }
         }
-      }
+      })
     });
   }
 
@@ -201,16 +205,27 @@ class App extends Component {
   }
 
   bindPlayersToFirebase() {
-    const ref = fire.bindToState('players', {
+    return fire.bindToState('players', {
       context: this,
       state: 'players',
       asArray: true
     })
   }
 
+  fetchPlayersFromFirebase() {
+    return fire.fetch('players', {
+        context: this,
+        asArray: true
+      })
+  }
+
   render() {
-    const {currentPlayer, players} = this.state;
+    const {currentPlayer, loading, players} = this.state;
     let introText, buttonText;
+
+    if (loading) {
+      return null;
+    }
 
     if (!currentPlayer) {
       return <Login />;
