@@ -33,6 +33,28 @@ class App extends Component {
     })
   }
 
+  adjustLeaderboard(winner, loser) {
+      let players = this.state.players.slice();
+      console.log(players);
+      let winnerIndex;
+      let loserIndex;
+
+      players.forEach((player, index) => {
+        if (player.email === winner.email) {
+          winnerIndex = index;
+        } else if (player.email === loser.email) {
+          loserIndex = index;
+        }
+      });
+
+      if (winnerIndex > loserIndex) {
+        players = [...players.slice(0,loserIndex), winner, ...players.slice(loserIndex, winnerIndex), ...players.slice(winnerIndex + 1)];
+        console.log(players);
+        
+        this.updatePlayers(players);
+      }
+  }
+
   listenForAuth() {
     firebase.auth().onAuthStateChanged(user => {
       this.fetchPlayersFromFirebase()
@@ -63,9 +85,13 @@ class App extends Component {
   }
 
   handleButtonClick() {
-    const {currentPlayer} = this.state;
-    let {opponent} = currentPlayer;
+    const {currentPlayer, players} = this.state;
+    let opponent
     let playingState;
+
+    if (currentPlayer.opponent) {
+      opponent = players.find(player => player.email === currentPlayer.opponent.email);
+    }
 
     switch(currentPlayer.playingState) {
     case constants.INACTIVE:
@@ -102,17 +128,21 @@ class App extends Component {
         ...opponent,
         playingState,
         streak: opponent.streak ? [...opponent.streak, 'W'] : ['W']
-      });
+      })
+      .then(() => {
+        console.log('update loser');
+        this.setState({
+          currentPlayer: {
+            ...currentPlayer,
+            playingState,
+            streak: currentPlayer.streak ? [...currentPlayer.streak, 'L'] : ['L']
+          }
+        }, () => {
+          this.saveResult(opponent, currentPlayer);
+          this.adjustLeaderboard(opponent, currentPlayer);
+        });
+      })
 
-      this.setState({
-        currentPlayer: {
-          ...currentPlayer,
-          playingState,
-          streak: currentPlayer.streak ? [...currentPlayer.streak, 'L'] : ['L']
-        }
-      });
-
-      this.saveResult(opponent, currentPlayer);
       return;
 
     default:
@@ -167,13 +197,16 @@ class App extends Component {
   }
 
   updatePlayer(player) {
-      fire.update('players/' + player.key, {
-        data: player,
-        then(err){
-          if(!err){
-            console.log('updated');
-          }
-        }
+      console.log('updating player', player);
+      return fire.update('players/' + player.key, {
+        data: player
+      });
+  }
+
+  updatePlayers(players) {
+    players.forEach(player => console.log(player.email));
+      return fire.post('players', {
+        data: players
       });
   }
   
@@ -184,9 +217,9 @@ class App extends Component {
       }) 
   }
 
-  saveResult(won, lost) {
+  saveResult(winner, loser) {
       var immediatelyAvailableReference = fire.push('matches', {
-          data: {won, lost}
+          data: {winner, loser}
       });
       //available immediately, you don't have to wait for the callback to be called
       return immediatelyAvailableReference.key;
@@ -279,21 +312,22 @@ class App extends Component {
         </Section>
 
         {currentPlayer ?
-        <div>
-          <Section actions>
-            <Button onClick={this.handleButtonClick.bind(this)}>
-              {buttonText}
-            </Button>
-          </Section>
-          <Leaderboard
-            currentPlayer={currentPlayer}
-            isSelectingOpponent={currentPlayer.playingState === constants.SELECTING_OPPONENT}
-            players={players}
-            selectOpponent={this.selectOpponent.bind(this)}
-          />
-        </div>
+          <div>
+            <Section actions>
+              <Button onClick={this.handleButtonClick.bind(this)}>
+                {buttonText}
+              </Button>
+            </Section>
+            <Leaderboard
+              currentPlayer={currentPlayer}
+              isSelectingOpponent={currentPlayer.playingState === constants.SELECTING_OPPONENT}
+              players={players}
+              selectOpponent={this.selectOpponent.bind(this)}
+            />
+          </div>
         :
-        <Login />}
+          <Login />
+        }
 
       </Wrap>
     );
