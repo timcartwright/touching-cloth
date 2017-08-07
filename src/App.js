@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import Rebase  from 're-base';
 import fire from './fire';
 import firebase from 'firebase';
 import Header from './components/Header';
@@ -115,9 +114,12 @@ class App extends Component {
 
       this.saveResult(opponent, currentPlayer);
       return;
-      break;
 
+    default:
+      playingState = constants.INACTIVE;
+      this.updatePlayingState(opponent, playingState);
     }
+
     console.log(currentPlayer, playingState);
     this.setState({
       currentPlayer: {...currentPlayer, playingState}
@@ -227,64 +229,72 @@ class App extends Component {
       return null;
     }
 
-    if (!currentPlayer) {
-      return <Login />;
-    }
-
-
-
-    switch(currentPlayer.playingState) {
-    case constants.SELECTING_OPPONENT:
-        introText = 'Select your opponent';
-        buttonText = 'Cancel';
+    if (currentPlayer) {
+      switch(currentPlayer.playingState) {
+      case constants.SELECTING_OPPONENT:
+          introText = 'Select your opponent';
+          buttonText = 'Cancel';
+          break;
+      case constants.HAS_SELECTED_OPPONENT:
+          introText = `Waiting for ${currentPlayer.opponent.displayName}`;
+          buttonText = 'Cancel Request';
+          break;
+      case constants.HAS_BEEN_SELECTED:
+          introText = `${currentPlayer.opponent.displayName} wants to play you`;
+          buttonText = 'Play';
+          break;
+      case constants.PLAYING:
+          introText = `You are playing ${currentPlayer.opponent.displayName}`;
+          buttonText = 'I won';
+          break;
+      case constants.HAS_DECLARED_RESULT:
+        introText = `Waiting for ${currentPlayer.opponent.displayName} to confirm you won`;
+        buttonText = 'Withdraw result';
         break;
-    case constants.HAS_SELECTED_OPPONENT:
-        introText = `Waiting for ${currentPlayer.opponent.displayName}`;
-        buttonText = 'Cancel Request';
+      case constants.SHOULD_CONFIRM_RESULT:
+        introText = `Please confirm that you lost to ${currentPlayer.opponent.displayName}`;
+        buttonText = 'Yes I lost';
         break;
-    case constants.HAS_BEEN_SELECTED:
-        introText = `${currentPlayer.opponent.displayName} wants to play you`;
-        buttonText = 'Play';
-        break;
-    case constants.PLAYING:
-        introText = `You are playing ${currentPlayer.opponent.displayName}`;
-        buttonText = 'I won';
-        break;
-    case constants.HAS_DECLARED_RESULT:
-      introText = `Waiting for ${currentPlayer.opponent.displayName} to confirm you won`;
-      buttonText = 'Withdraw result';
-      break;
-    case constants.SHOULD_CONFIRM_RESULT:
-      introText = `Please confirm that you lost to ${currentPlayer.opponent.displayName}`;
-      buttonText = 'Yes I lost';
-      break;
-    default:
-        introText = `Hi ${currentPlayer.displayName}`;
-        buttonText = 'Propose a Game';
+      default:
+          introText = `Hi ${currentPlayer.displayName}`;
+          buttonText = 'Propose a Game';
+      }
+    } else {
+      introText = 'Let\'s play pool';
     }
 
     return (
       <Wrap>
         <Header>
-          <PageTitle>Touching Fire</PageTitle>
-          <p onClick={this.handleLogOut.bind(this)}>
+          <PageTitle>Touching Cloth</PageTitle>
+
+          {currentPlayer &&
+          <p style={{cursor: 'pointer'}} onClick={this.handleLogOut.bind(this)}>
             Log out
-          </p>
+          </p>}
+
         </Header>
         <Section intro>
           {introText}
         </Section>
-        <Section actions>
-          <Button onClick={this.handleButtonClick.bind(this)}>
-            {buttonText}
-          </Button>
-        </Section>
-        <Leaderboard
-          currentPlayer={currentPlayer}
-          isSelectingOpponent={currentPlayer.playingState === constants.SELECTING_OPPONENT}
-          players={players}
-          selectOpponent={this.selectOpponent.bind(this)}
-        />
+
+        {currentPlayer ?
+        <div>
+          <Section actions>
+            <Button onClick={this.handleButtonClick.bind(this)}>
+              {buttonText}
+            </Button>
+          </Section>
+          <Leaderboard
+            currentPlayer={currentPlayer}
+            isSelectingOpponent={currentPlayer.playingState === constants.SELECTING_OPPONENT}
+            players={players}
+            selectOpponent={this.selectOpponent.bind(this)}
+          />
+        </div>
+        :
+        <Login />}
+
       </Wrap>
     );
   } 
