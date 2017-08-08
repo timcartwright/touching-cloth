@@ -9,14 +9,14 @@ import Wrap from './components/Wrap';
 import Leaderboard from './components/Leaderboard';
 import Login from './components/Login';
 import constants from './constants';
-    
+
 class App extends Component {
 
   constructor(props) {
     super(props);
 
     this.state = {
-      currentPlayer: null,
+      currentPlayerKey: null,
       players: null,
       loading: true
     };
@@ -31,6 +31,11 @@ class App extends Component {
         this.setState({loading: false});
       })
     })
+  }
+
+  currentPlayer() {
+    const {currentPlayerKey, players} = this.state;
+    return players.find(player => player.key === currentPlayerKey);
   }
 
   adjustLeaderboard(winner, loser) {
@@ -74,10 +79,11 @@ class App extends Component {
 
               this.addNewPlayer(currentPlayer)
               .then(key => {
-                this.syncCurrentPlayerWithFirebase(key);
+                this.setState({currentPlayerKey: key});
               });
+
           } else {
-            this.syncCurrentPlayerWithFirebase(currentPlayer.key);
+            this.setState({currentPlayerKey: currentPlayer.key});
           }
         }
       })
@@ -85,12 +91,13 @@ class App extends Component {
   }
 
   handleButtonClick() {
-    const {currentPlayer, players} = this.state;
-    let opponent
+    const {players} = this.state;
+    const currentPlayer = this.currentPlayer();
+    let opponent;
     let playingState;
 
     if (currentPlayer.opponent) {
-      opponent = players.find(player => player.email === currentPlayer.opponent.email);
+      opponent = players.find(player => player.key === currentPlayer.opponent);
     }
 
     switch(currentPlayer.playingState) {
@@ -131,17 +138,16 @@ class App extends Component {
       })
       .then(() => {
         console.log('update loser');
-        this.setState({
-          currentPlayer: {
-            ...currentPlayer,
-            playingState,
-            streak: currentPlayer.streak ? [...currentPlayer.streak, 'L'] : ['L']
-          }
-        }, () => {
-          this.saveResult(opponent, currentPlayer);
-          this.adjustLeaderboard(opponent, currentPlayer);
-        });
+        this.updatePlayer({
+          ...currentPlayer,
+          playingState,
+          streak: currentPlayer.streak ? [...currentPlayer.streak, 'L'] : ['L']
+        })
       })
+      .then(() => {
+        this.saveResult(opponent, currentPlayer);
+        this.adjustLeaderboard(opponent, currentPlayer);
+      });
 
       return;
 
@@ -150,9 +156,9 @@ class App extends Component {
       this.updatePlayingState(opponent, playingState);
     }
 
-    console.log(currentPlayer, playingState);
-    this.setState({
-      currentPlayer: {...currentPlayer, playingState}
+    this.updatePlayer({
+      ...currentPlayer,
+      playingState,
     });
   }
 
@@ -165,27 +171,20 @@ class App extends Component {
     });
   }
 
-  handleSelectOpponent() {
-    this.setState({stateOfPlay: constants.SELECTING_OPPONENT});
-  }
-
   selectOpponent(opponent) {
-    const {currentPlayer} = this.state;
-    delete opponent.opponent;
-
-    this.setState({
-      currentPlayer: {
-        ...currentPlayer,
-        playingState: constants.HAS_SELECTED_OPPONENT,
-        opponent
-      }
-    });
+    const currentPlayer = this.currentPlayer();
 
     this.updatePlayer({
       ...opponent,
       playingState: constants.HAS_BEEN_SELECTED,
-      opponent: currentPlayer
-    })
+      opponent: currentPlayer.key
+    });
+
+    this.updatePlayer({
+      ...currentPlayer,
+      playingState: constants.HAS_SELECTED_OPPONENT,
+      opponent: opponent.key
+    });
   }
 
   async addNewPlayer(player) {
@@ -225,19 +224,12 @@ class App extends Component {
       return immediatelyAvailableReference.key;
   }
 
-  syncCurrentPlayerWithFirebase(ref) {
-    this.refSyncCurrent = fire.syncState('players/' + ref, {
-      context: this,
-      state: 'currentPlayer',
-      then(err){
-        if(!err){
-          this.setState({currentPlayer:
-            {...this.state.currentPlayer, key: ref}
-          })
-        }
-      }
-    });
-  }
+  // syncCurrentPlayerWithFirebase(ref) {
+  //   this.refSyncCurrent = fire.syncState('players/' + ref, {
+  //     context: this,
+  //     state: 'currentPlayer'
+  //   });
+  // }
 
   bindPlayersToFirebase() {
     return fire.bindToState('players', {
@@ -255,37 +247,44 @@ class App extends Component {
   }
 
   render() {
-    const {currentPlayer, loading, players} = this.state;
+    const {loading, players} = this.state;
+    let opponent;
     let introText, buttonText;
 
     if (loading) {
       return null;
     }
 
+    const currentPlayer = this.currentPlayer();
+
     if (currentPlayer) {
+      if (currentPlayer.opponent) {
+        opponent = players.find(player => player.key === currentPlayer.opponent);
+      }
+
       switch(currentPlayer.playingState) {
       case constants.SELECTING_OPPONENT:
           introText = 'Select your opponent';
           buttonText = 'Cancel';
           break;
       case constants.HAS_SELECTED_OPPONENT:
-          introText = `Waiting for ${currentPlayer.opponent.displayName}`;
+          introText = `Waiting for ${opponent.displayName}`;
           buttonText = 'Cancel Request';
           break;
       case constants.HAS_BEEN_SELECTED:
-          introText = `${currentPlayer.opponent.displayName} wants to play you`;
+          introText = `${opponent.displayName} wants to play you`;
           buttonText = 'Play';
           break;
       case constants.PLAYING:
-          introText = `You are playing ${currentPlayer.opponent.displayName}`;
+          introText = `You are playing ${opponent.displayName}`;
           buttonText = 'I won';
           break;
       case constants.HAS_DECLARED_RESULT:
-        introText = `Waiting for ${currentPlayer.opponent.displayName} to confirm you won`;
+        introText = `Waiting for ${opponent.displayName} to confirm you won`;
         buttonText = 'Withdraw result';
         break;
       case constants.SHOULD_CONFIRM_RESULT:
-        introText = `Please confirm that you lost to ${currentPlayer.opponent.displayName}`;
+        introText = `Please confirm that you lost to ${opponent.displayName}`;
         buttonText = 'Yes I lost';
         break;
       default:
