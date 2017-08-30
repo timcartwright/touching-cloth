@@ -23,7 +23,7 @@ class Login extends Component {
         return (
             <Section>
                 <Button onClick={this.signInWithGoogle.bind(this)}>
-                    Sign in with Google
+                    Login
                 </Button>
             </Section>
         );

@@ -9,6 +9,7 @@ import Wrap from './components/Wrap';
 import Leaderboard from './components/Leaderboard';
 import Login from './components/Login';
 import constants from './constants';
+import tcLogo from './img/tc-logo.svg';
 
 class App extends Component {
 
@@ -40,7 +41,6 @@ class App extends Component {
 
   adjustLeaderboard(winner, loser) {
       let players = this.state.players.slice();
-      console.log(players);
       let winnerIndex;
       let loserIndex;
 
@@ -54,8 +54,6 @@ class App extends Component {
 
       if (winnerIndex > loserIndex) {
         players = [...players.slice(0,loserIndex), winner, ...players.slice(loserIndex, winnerIndex), ...players.slice(winnerIndex + 1)];
-        console.log(players);
-        
         this.updatePlayers(players);
       }
   }
@@ -75,12 +73,10 @@ class App extends Component {
                 displayName: user.displayName,
                 email: user.email,
                 playingState: constants.INACTIVE,
-              }
+              };
 
-              this.addNewPlayer(currentPlayer)
-              .then(key => {
-                this.setState({currentPlayerKey: key});
-              });
+              const key = this.addNewPlayer(currentPlayer);
+              this.setState({currentPlayerKey: key});
 
           } else {
             this.setState({currentPlayerKey: currentPlayer.key});
@@ -187,8 +183,8 @@ class App extends Component {
     });
   }
 
-  async addNewPlayer(player) {
-      var immediatelyAvailableReference = fire.push('players', {
+  addNewPlayer(player) {
+      const immediatelyAvailableReference = fire.push('players', {
           data: player
       });
       //available immediately, you don't have to wait for the callback to be called
@@ -204,9 +200,9 @@ class App extends Component {
 
   updatePlayers(players) {
     players.forEach(player => console.log(player.email));
-      return fire.post('players', {
-        data: players
-      });
+    return fire.post('players', {
+      data: players
+    });
   }
   
   updatePlayingState(player, playingState) {
@@ -223,13 +219,6 @@ class App extends Component {
       //available immediately, you don't have to wait for the callback to be called
       return immediatelyAvailableReference.key;
   }
-
-  // syncCurrentPlayerWithFirebase(ref) {
-  //   this.refSyncCurrent = fire.syncState('players/' + ref, {
-  //     context: this,
-  //     state: 'currentPlayer'
-  //   });
-  // }
 
   bindPlayersToFirebase() {
     return fire.bindToState('players', {
@@ -298,7 +287,9 @@ class App extends Component {
     return (
       <Wrap>
         <Header>
-          <PageTitle>Touching Cloth</PageTitle>
+          <PageTitle>
+            <img src={tcLogo} alt="Touching Cloth Logo" />
+          </PageTitle>
 
           {currentPlayer &&
           <p style={{cursor: 'pointer'}} onClick={this.handleLogOut.bind(this)}>
@@ -306,12 +297,12 @@ class App extends Component {
           </p>}
 
         </Header>
-        <Section intro>
-          {introText}
-        </Section>
 
         {currentPlayer ?
           <div>
+            <Section intro>
+              {introText}
+            </Section>
             <Section actions>
               <Button onClick={this.handleButtonClick.bind(this)}>
                 {buttonText}

@@ -10,7 +10,7 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponen
     const StyledList = styled(List)`
         box-shadow: ${isSelectingOpponent ? '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)' : 'none'};
         margin: 0 auto;
-        max-width: 320px;
+        max-width: 375px;
     `
 
     const StyledListItem = styled(ListItem)`
@@ -35,7 +35,7 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponen
                         key={key}
                         onClick={isSelectingOpponent && !isCurrentPlayer && selectOpponent.bind(null, player)}
                     >
-                        <span>{email}</span>
+                        <span>{displayName}</span>
                         <InlineFlex>
                             {streak && <Streak streak={streak.slice(-5)} />}
                         </InlineFlex>

@@ -10,8 +10,8 @@ const ListItem = styled.li`
     padding: 16px;
 
     &:nth-child(even) {
-		  background: #444;
-	  }
+        background: linear-gradient(0deg, rgba(255,255,255,0.2) 3.06%, rgba(255,255,255,0.2) 97.96%);
+	}
 `
 
 export default ListItem;
