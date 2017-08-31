@@ -64,7 +64,7 @@ class App extends Component {
       .then(players => {
         if (user) {
           let currentPlayer = players.find(player => player.email === user.email);
-          console.log('Logged in', user, players);
+          console.log('Logged in');
 
           if (!currentPlayer) {
               console.log('Adding new player');
@@ -94,6 +94,7 @@ class App extends Component {
 
     if (currentPlayer.opponent) {
       opponent = players.find(player => player.key === currentPlayer.opponent);
+      console.log(opponent);
     }
 
     switch(currentPlayer.playingState) {
@@ -142,7 +143,7 @@ class App extends Component {
       })
       .then(() => {
         this.saveResult(opponent, currentPlayer);
-        this.adjustLeaderboard(opponent, currentPlayer);
+        // this.adjustLeaderboard(opponent, currentPlayer);
       });
 
       return;
@@ -159,10 +160,13 @@ class App extends Component {
   }
 
   handleLogOut() {
+    this.setState({currentPlayerKey: null});
+
     firebase.auth().signOut().then(() => {
       fire.removeBinding(this.refSyncCurrent);
-      this.setState({currentPlayer: null});
+      console.log('logged out');
     }).catch(error => {
+      console.log(error);
       // An error happened.
     });
   }

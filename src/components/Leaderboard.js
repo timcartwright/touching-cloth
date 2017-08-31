@@ -26,16 +26,18 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponen
     return (
         <StyledList>
             {players.map(player => {
-                const {displayName, key, streak, email} = player;
-                const isCurrentPlayer = currentPlayer.key === player.key;
+                const {displayName, key, streak, email, playingState} = player;
+                const isCurrentPlayer = key === currentPlayer.key;
+                const playerIsInactive = playingState === 'inactive';
+                const selectable = isSelectingOpponent && playerIsInactive && !isCurrentPlayer;
 
                 return (
                     <StyledListItem
-                        link={isSelectingOpponent && !isCurrentPlayer}
+                        link={selectable}
                         key={key}
-                        onClick={isSelectingOpponent && !isCurrentPlayer && selectOpponent.bind(null, player)}
+                        onClick={selectable && selectOpponent.bind(null, player)}
                     >
-                        <span>{displayName}</span>
+                        <span>{displayName} - {playingState}</span>
                         <InlineFlex>
                             {streak && <Streak streak={streak.slice(-5)} />}
                         </InlineFlex>
