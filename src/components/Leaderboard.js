@@ -5,7 +5,9 @@ import ListItem from './ListItem';
 import Streak from './Streak';
 import InlineFlex from './InlineFlex';
 
-const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponent}) => {
+const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, selectOpponent}) => {
+
+    if (!leaderboard || !players) return null;
 
     const StyledList = styled(List)`
         box-shadow: ${isSelectingOpponent ? '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)' : 'none'};
@@ -25,7 +27,8 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponen
 
     return (
         <StyledList>
-            {players.map(player => {
+            {leaderboard.map(playerKey => {
+                const player = players.find(p => p.key === playerKey);
                 const {displayName, key, streak, email, playingState} = player;
                 const isCurrentPlayer = key === currentPlayer.key;
                 const playerIsInactive = playingState === 'inactive';
@@ -37,7 +40,7 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponen
                         key={key}
                         onClick={selectable && selectOpponent.bind(null, player)}
                     >
-                        <span>{displayName} - {playingState}</span>
+                        <span>{email} - {playingState}</span>
                         <InlineFlex>
                             {streak && <Streak streak={streak.slice(-5)} />}
                         </InlineFlex>

@@ -9,7 +9,7 @@ import Wrap from './components/Wrap';
 import Leaderboard from './components/Leaderboard';
 import Login from './components/Login';
 import constants from './constants';
-import tcLogo from './img/tc-logo.svg';
+import Logo from './img/tc-logo.svg';
 
 class App extends Component {
 
@@ -19,19 +19,21 @@ class App extends Component {
     this.state = {
       currentPlayerKey: null,
       players: null,
+      leaderboard: null,
       loading: true
     };
   }
 
   componentDidMount() {
+    this.bindLeaderboardToFirebase();
     this.fetchPlayersFromFirebase()
-    .then(players => {
-      this.setState({players}, () => {
-        this.listenForAuth();
-        this.bindPlayersToFirebase();
-        this.setState({loading: false});
-      })
-    })
+      .then(players => {
+        this.setState({players}, () => {
+          this.listenForAuth();
+          this.bindPlayersToFirebase();
+          this.setState({loading: false});
+        })
+      });
   }
 
   currentPlayer() {
@@ -53,7 +55,7 @@ class App extends Component {
       });
 
       if (winnerIndex > loserIndex) {
-        players = [...players.slice(0,loserIndex), winner, ...players.slice(loserIndex, winnerIndex), ...players.slice(winnerIndex + 1)];
+        players = [...players.slice(0,loserIndex), winner, ...players.slice(loserIndex)];
         this.updatePlayers(players);
       }
   }
@@ -94,7 +96,6 @@ class App extends Component {
 
     if (currentPlayer.opponent) {
       opponent = players.find(player => player.key === currentPlayer.opponent);
-      console.log(opponent);
     }
 
     switch(currentPlayer.playingState) {
@@ -143,7 +144,6 @@ class App extends Component {
       })
       .then(() => {
         this.saveResult(opponent, currentPlayer);
-        // this.adjustLeaderboard(opponent, currentPlayer);
       });
 
       return;
@@ -196,14 +196,12 @@ class App extends Component {
   }
 
   updatePlayer(player) {
-      console.log('updating player', player);
       return fire.update('players/' + player.key, {
         data: player
       });
   }
 
   updatePlayers(players) {
-    players.forEach(player => console.log(player.email));
     return fire.post('players', {
       data: players
     });
@@ -217,11 +215,9 @@ class App extends Component {
   }
 
   saveResult(winner, loser) {
-      var immediatelyAvailableReference = fire.push('matches', {
+      fire.push('matches', {
           data: {winner, loser}
       });
-      //available immediately, you don't have to wait for the callback to be called
-      return immediatelyAvailableReference.key;
   }
 
   bindPlayersToFirebase() {
@@ -232,15 +228,30 @@ class App extends Component {
     })
   }
 
+  bindLeaderboardToFirebase() {
+    return fire.bindToState('leaderboard', {
+      context: this,
+      state: 'leaderboard',
+      asArray: true
+    })
+  }
+
   fetchPlayersFromFirebase() {
     return fire.fetch('players', {
         context: this,
         asArray: true
       })
   }
+  
+  fetchLeaderboardFromFirebase() {
+    return fire.fetch('leaderboard', {
+        context: this,
+        asArray: true
+      })
+  }
 
   render() {
-    const {loading, players} = this.state;
+    const {leaderboard, loading, players} = this.state;
     let opponent;
     let introText, buttonText;
 
@@ -292,7 +303,7 @@ class App extends Component {
       <Wrap>
         <Header>
           <PageTitle>
-            <img src={tcLogo} alt="Touching Cloth Logo" />
+            <img src={Logo} alt="Touching Cloth Logo" />
           </PageTitle>
 
           {currentPlayer &&
@@ -315,6 +326,7 @@ class App extends Component {
             <Leaderboard
               currentPlayer={currentPlayer}
               isSelectingOpponent={currentPlayer.playingState === constants.SELECTING_OPPONENT}
+              leaderboard={leaderboard}
               players={players}
               selectOpponent={this.selectOpponent.bind(this)}
             />
