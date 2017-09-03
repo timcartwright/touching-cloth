@@ -21,3 +21,35 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.leaderboard {
+    margin: 0 auto;
+    max-width: 375px;
+}
+
+.leaderboard--active {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+}
+
+.leaderboard__item {
+    align-items: center;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    list-style-type: none;
+    margin: 0;
+    padding: 16px;
+
+}
+
+.leaderboard__item--active {
+    cursor: pointer;
+}
+
+.leaderboard__item--active:hover {
+    text-decoration: underline;
+}
+
+.leaderboard__item:nth-child(even) {
+    background: linear-gradient(0deg, rgba(255,255,255,0.2) 3.06%, rgba(255,255,255,0.2) 97.96%);
+}

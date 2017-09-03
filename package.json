@@ -7,6 +7,7 @@
     "re-base": "^3.0.3",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
+    "react-flip-move": "^2.9.15",
     "styled-components": "^2.1.2"
   },
   "devDependencies": {
