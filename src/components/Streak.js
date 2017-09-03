@@ -10,14 +10,14 @@ const Streak = ({streak}) => {
     `
 
     return (
-        <InlineFlex>
+        <div>
             {streak.map((result, key) =>
                 <StyledStreakResult
                     key={key}
                     result={result}
                 />
             )}
-        </InlineFlex>
+        </div>
     );
 }
 

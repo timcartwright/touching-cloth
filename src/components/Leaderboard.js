@@ -1,7 +1,6 @@
 import React from 'react';
 import FlipMove from 'react-flip-move';
-import Streak from './Streak';
-import InlineFlex from './InlineFlex';
+import LeaderboardRow from './LeaderboardRow';
 import '../App.css';
 
 const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, selectOpponent}) => {
@@ -10,26 +9,28 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, s
 
     return (
         <div className={isSelectingOpponent ? 'leaderboard leaderboard--active' : 'leaderboard'}>
-            <FlipMove duration={750} easing="ease-out">
-                {leaderboard.map(playerKey => {
+            <FlipMove
+                appearAnimation="accordionVertical"
+                duration={500}
+                easing="ease-out"
+                staggerDelayBy={100}
+            >
+                {leaderboard.map((playerKey, index) => {
                     const player = players.find(p => p.key === playerKey);
-                    const {displayName, key, streak, email, playingState} = player;
+                    const {displayName, key, streak, email, avatar, playingState} = player;
                     const isCurrentPlayer = key === currentPlayer.key;
                     const playerIsInactive = playingState === 'inactive';
                     const selectable = isSelectingOpponent && playerIsInactive && !isCurrentPlayer;
 
                     return (
-                        <div
-                            className={selectable ? 'leaderboard__item leaderboard__item--active' : 'leaderboard__item'}
+                        <LeaderboardRow
+                            selectable={selectable}
                             key={key}
-                            onClick={selectable && selectOpponent.bind(null, player)}
-                        >
-                            <span>{email}</span>
-                            <InlineFlex>
-                                {streak && <Streak streak={streak.slice(-5)} />}
-                            </InlineFlex>
-                        </div>
-                    )
+                            player={player}
+                            rank={index + 1}
+                            selectOpponent={selectOpponent.bind(null, player)}
+                        />
+                    );
                 })}
             </FlipMove>
         </div>

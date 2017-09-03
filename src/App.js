@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import fire from './fire';
 import firebase from 'firebase';
+import ContentWrap from './components/ContentWrap';
+import Topbar from './components/Topbar';
 import Header from './components/Header';
 import PageTitle from './components/PageTitle';
 import Button from './components/Button';
@@ -10,6 +12,7 @@ import Leaderboard from './components/Leaderboard';
 import Login from './components/Login';
 import constants from './constants';
 import Logo from './img/tc-logo.svg';
+import LeaderboardRow from './components/LeaderboardRow';
 
 class App extends Component {
 
@@ -66,15 +69,16 @@ class App extends Component {
       .then(players => {
         if (user) {
           let currentPlayer = players.find(player => player.email === user.email);
-          console.log('Logged in');
+          console.log('Logged in:', user);
 
           if (!currentPlayer) {
               console.log('Adding new player');
 
               currentPlayer = {
+                avatar: user.photoURL,
                 displayName: user.displayName,
                 email: user.email,
-                playingState: constants.INACTIVE,
+                playingState: constants.INACTIVE
               };
 
               const key = this.addNewPlayer(currentPlayer);
@@ -254,6 +258,8 @@ class App extends Component {
     const {leaderboard, loading, players} = this.state;
     let opponent;
     let introText, buttonText;
+    let isSelectingOpponent = false;
+    let currentPlayerRank;
 
     if (loading) {
       return null;
@@ -262,6 +268,9 @@ class App extends Component {
     const currentPlayer = this.currentPlayer();
 
     if (currentPlayer) {
+      isSelectingOpponent = currentPlayer.playingState === constants.SELECTING_OPPONENT;
+      currentPlayerRank = leaderboard.indexOf(currentPlayer.key) + 1;
+
       if (currentPlayer.opponent) {
         opponent = players.find(player => player.key === currentPlayer.opponent);
       }
@@ -301,31 +310,50 @@ class App extends Component {
 
     return (
       <Wrap>
+        {currentPlayer &&
+        <Topbar>
+          <ContentWrap flex>
+            <div style={{cursor: 'pointer'}} onClick={this.handleLogOut.bind(this)}>
+              Logout
+            </div>
+          </ContentWrap>
+        </Topbar>}
+
         <Header>
           <PageTitle>
             <img src={Logo} alt="Touching Cloth Logo" />
           </PageTitle>
 
-          {currentPlayer &&
-          <p style={{cursor: 'pointer'}} onClick={this.handleLogOut.bind(this)}>
-            Log out
-          </p>}
 
         </Header>
 
         {currentPlayer ?
           <div>
             <Section intro>
-              {introText}
+              <ContentWrap>
+                  Here's where you are at the moment
+              </ContentWrap>
             </Section>
-            <Section actions>
+            <Section currentPlayer>
+              <LeaderboardRow
+                  selectable={false}
+                  player={currentPlayer}
+                  rank={currentPlayerRank}
+              />
+            </Section>
+            <Section>
+              <div className="leaderboard__title">
+                  {isSelectingOpponent ? 'Select an Opponent' : 'Current Standings'}
+              </div>
+            </Section>
+            <Section>
               <Button onClick={this.handleButtonClick.bind(this)}>
                 {buttonText}
               </Button>
             </Section>
             <Leaderboard
               currentPlayer={currentPlayer}
-              isSelectingOpponent={currentPlayer.playingState === constants.SELECTING_OPPONENT}
+              isSelectingOpponent={isSelectingOpponent}
               leaderboard={leaderboard}
               players={players}
               selectOpponent={this.selectOpponent.bind(this)}
