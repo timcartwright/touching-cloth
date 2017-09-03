@@ -33,7 +33,7 @@ exports.handler = (event) => {
 
     return rp(options)
     .then(response => {
-        slackUser = response.members.find(member => member.profile.email === 'tim.cartwright@mediablazegroup.com');
+        slackUser = response.members.find(member => member.profile.email === player.email);
         if (!slackUser) return false;
         const opponentRef = admin.database().ref('players/' + player.opponent);
         return opponentRef.once('value');

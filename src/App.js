@@ -71,7 +71,7 @@ class App extends Component {
           let currentPlayer = players.find(player => player.email === user.email);
           console.log('Logged in:', user);
 
-          if (!currentPlayer) {
+          if (!currentPlayer && !this.state.currentPlayerKey) {
               console.log('Adding new player');
 
               currentPlayer = {
@@ -85,6 +85,10 @@ class App extends Component {
               this.setState({currentPlayerKey: key});
 
           } else {
+            if (!currentPlayer.avatar) {
+              currentPlayer.avatar = user.photoURL;
+              this.updatePlayer(currentPlayer);
+            }
             this.setState({currentPlayerKey: currentPlayer.key});
           }
         }
@@ -167,7 +171,6 @@ class App extends Component {
     this.setState({currentPlayerKey: null});
 
     firebase.auth().signOut().then(() => {
-      fire.removeBinding(this.refSyncCurrent);
       console.log('logged out');
     }).catch(error => {
       console.log(error);
@@ -194,6 +197,15 @@ class App extends Component {
   addNewPlayer(player) {
       const immediatelyAvailableReference = fire.push('players', {
           data: player
+      });
+      this.addToLeaderboard(immediatelyAvailableReference.key);
+      //available immediately, you don't have to wait for the callback to be called
+      return immediatelyAvailableReference.key;
+  }
+
+  addToLeaderboard(playerKey) {
+      const immediatelyAvailableReference = fire.push('leaderboard', {
+          data: playerKey
       });
       //available immediately, you don't have to wait for the callback to be called
       return immediatelyAvailableReference.key;

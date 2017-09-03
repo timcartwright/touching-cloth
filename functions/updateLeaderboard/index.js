@@ -4,6 +4,7 @@ exports.handler = (event) => {
     const leaderboard = admin.database().ref('leaderboard');
     const match = event.data.val();
     let loser;
+    let rank = 1;
     let winner;
     let winnerKey;
     let newLeaderboard = [];
@@ -14,24 +15,25 @@ exports.handler = (event) => {
             const playerKey = position.val();
 
             if (playerKey === match.winner.key) {
-                winner = position.key;
+                winner = rank;
                 winnerKey = playerKey;
 
             } else if (playerKey === match.loser.key) {
-                loser = position.key;
+                loser = rank;
             }
 
             if ((!winner && !loser) || (winner && !loser) || (winner < loser)) {
                 newLeaderboard.push(playerKey);
 
-            } else if (loser === position.key) {
+            } else if (loser === rank) {
                 newLeaderboard.push('replaceWithWinner');
                 newLeaderboard.push(playerKey);
 
-            } else if (winner !== position.key) {
+            } else if (winner !== rank) {
                 newLeaderboard.push(playerKey);
             }
 
+            rank ++;
         });
 
         newLeaderboard = newLeaderboard.map(value => value === 'replaceWithWinner' ? winnerKey : value);

@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
 import StreakResult from './StreakResult';
-import InlineFlex from './InlineFlex';
 
 
 const Streak = ({streak}) => {

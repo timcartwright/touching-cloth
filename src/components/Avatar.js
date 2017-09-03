@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'styled-components';
 import InlineFlex from './InlineFlex';
 
 
@@ -14,7 +13,7 @@ const Avatar = ({player}) => {
 
     return (
         <InlineFlex>
-           <img style={imgStyle} src={player.avatar} />
+           <img style={imgStyle} src={player.avatar} alt='' />
         </InlineFlex>
     );
 }

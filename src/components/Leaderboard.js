@@ -17,7 +17,7 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, s
             >
                 {leaderboard.map((playerKey, index) => {
                     const player = players.find(p => p.key === playerKey);
-                    const {displayName, key, streak, email, avatar, playingState} = player;
+                    const {key, playingState} = player;
                     const isCurrentPlayer = key === currentPlayer.key;
                     const playerIsInactive = playingState === 'inactive';
                     const selectable = isSelectingOpponent && playerIsInactive && !isCurrentPlayer;
