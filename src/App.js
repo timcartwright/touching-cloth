@@ -44,22 +44,24 @@ class App extends Component {
     return players.find(player => player.key === currentPlayerKey);
   }
 
-  adjustLeaderboard(winner, loser) {
-      let players = this.state.players.slice();
+  updateLeaderboard(winner, loser) {
+      const {leaderboard} = this.state;
       let winnerIndex;
       let loserIndex;
 
-      players.forEach((player, index) => {
-        if (player.email === winner.email) {
+      leaderboard.forEach((playerKey, index) => {
+        if (playerKey === winner.key) {
           winnerIndex = index;
-        } else if (player.email === loser.email) {
+        } else if (playerKey === loser.key) {
           loserIndex = index;
         }
       });
 
       if (winnerIndex > loserIndex) {
-        players = [...players.slice(0,loserIndex), winner, ...players.slice(loserIndex)];
-        this.updatePlayers(players);
+        const newLeaderboard = [...leaderboard.slice(0,loserIndex), winner.key, ...leaderboard.slice(loserIndex, winnerIndex), ...leaderboard.slice(winnerIndex + 1)];
+        fire.update('leaderboard', {
+            data: newLeaderboard
+        });
       }
   }
 
@@ -152,6 +154,7 @@ class App extends Component {
       })
       .then(() => {
         this.saveResult(opponent, currentPlayer);
+        this.updateLeaderboard(opponent, currentPlayer);
       });
 
       return;
@@ -335,8 +338,6 @@ class App extends Component {
           <PageTitle>
             <img src={Logo} alt="Touching Cloth Logo" />
           </PageTitle>
-
-
         </Header>
 
         {currentPlayer ?
