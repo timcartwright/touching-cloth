@@ -42,7 +42,7 @@ exports.handler = (event) => {
         const opponentName = opponent.child('displayName').val();
         return postSlack({
             channel: '@' + slackUser.name,
-            text: '@' + slackUser.name + ' Want to touch cloth with ' + opponentName + '?'
+            text: opponentName + ' has challenged you to a game of pool.'
         })
     })
     .then(response => {

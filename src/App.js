@@ -289,7 +289,7 @@ class App extends Component {
 
       switch(currentPlayer.playingState) {
       case constants.SELECTING_OPPONENT:
-          introText = 'Select your opponent';
+          introText = 'Select an Opponent';
           buttonText = 'Cancel';
           break;
       case constants.HAS_SELECTED_OPPONENT:
@@ -309,15 +309,15 @@ class App extends Component {
         buttonText = 'Withdraw result';
         break;
       case constants.SHOULD_CONFIRM_RESULT:
-        introText = `Please confirm that you lost to ${opponent.displayName}`;
+        introText = `Did you lose to ${opponent.displayName}?`;
         buttonText = 'Yes I lost';
         break;
       default:
-          introText = `Hi ${currentPlayer.displayName}`;
+          introText = `Current Standings`;
           buttonText = 'Propose a Game';
       }
     } else {
-      introText = 'Let\'s play pool';
+      introText = 'Current Standings';
     }
 
     return (
@@ -355,7 +355,7 @@ class App extends Component {
             </Section>
             <Section>
               <div className="leaderboard__title">
-                  {isSelectingOpponent ? 'Select an Opponent' : 'Current Standings'}
+                  {introText}
               </div>
             </Section>
             <Section>
