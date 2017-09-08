@@ -13,6 +13,7 @@ import Login from './components/login';
 import constants from './constants';
 import Logo from './img/tc-logo.svg';
 import LeaderboardRow from './components/leaderboard/LeaderboardRow';
+import utils from './helpers';
 
 class App extends Component {
 
@@ -44,31 +45,6 @@ class App extends Component {
     return players.find(player => player.key === currentPlayerKey);
   }
 
-  updateLeaderboard(winner, loser) {
-      const {leaderboard} = this.state;
-      let winnerIndex;
-      let loserIndex;
-
-      leaderboard.forEach((playerKey, index) => {
-        if (playerKey === winner.key) {
-          winnerIndex = index;
-        } else if (playerKey === loser.key) {
-          loserIndex = index;
-        }
-      });
-
-      console.log(winnerIndex, loserIndex);
-
-      if (winnerIndex > loserIndex) {
-        const newLeaderboard = [...leaderboard.slice(0,loserIndex), winner.key, ...leaderboard.slice(loserIndex, winnerIndex), ...leaderboard.slice(winnerIndex + 1)];
-        console.log(newLeaderboard);
-      
-        fire.post('leaderboard', {
-            data: newLeaderboard
-        });
-      }
-  }
-
   listenForAuth() {
     firebase.auth().onAuthStateChanged(user => {
       this.fetchPlayersFromFirebase()
@@ -87,13 +63,13 @@ class App extends Component {
                 playingState: constants.INACTIVE
               };
 
-              const key = this.addNewPlayer(currentPlayer);
+              const key = utils.addNewPlayer(currentPlayer);
               this.setState({currentPlayerKey: key});
 
           } else {
             if (!currentPlayer.avatar) {
               currentPlayer.avatar = user.photoURL;
-              this.updatePlayer(currentPlayer);
+              utils.updatePlayer(currentPlayer);
             }
             this.setState({currentPlayerKey: currentPlayer.key});
           }
@@ -103,7 +79,7 @@ class App extends Component {
   }
 
   handleButtonClick() {
-    const {players} = this.state;
+    const {leaderboard, players} = this.state;
     const currentPlayer = this.currentPlayer();
     let opponent;
     let playingState;
@@ -123,34 +99,34 @@ class App extends Component {
 
     case constants.HAS_SELECTED_OPPONENT:
         playingState = constants.INACTIVE;
-        this.updatePlayingState(opponent, playingState);
+        utils.updatePlayingState(opponent, playingState);
         break;
 
     case constants.HAS_BEEN_SELECTED:
         playingState = constants.PLAYING;
-        this.updatePlayingState(opponent, playingState);
+        utils.updatePlayingState(opponent, playingState);
         break;
 
     case constants.PLAYING:
         playingState = constants.HAS_DECLARED_RESULT;
-        this.updatePlayingState(opponent, constants.SHOULD_CONFIRM_RESULT);
+        utils.updatePlayingState(opponent, constants.SHOULD_CONFIRM_RESULT);
         break;
 
     case constants.HAS_DECLARED_RESULT:
       playingState = constants.PLAYING;
-      this.updatePlayingState(opponent, constants.PLAYING);
+      utils.updatePlayingState(opponent, constants.PLAYING);
       break;
 
     case constants.SHOULD_CONFIRM_RESULT:
       playingState = constants.INACTIVE;
-      this.updatePlayer({
+      utils.updatePlayer({
         ...opponent,
         playingState,
         streak: opponent.streak ? [...opponent.streak, 'W'] : ['W']
       })
       .then(() => {
         console.log('update loser');
-        this.updatePlayer({
+        utils.updatePlayer({
           ...currentPlayer,
           playingState,
           streak: currentPlayer.streak ? [...currentPlayer.streak, 'L'] : ['L']
@@ -158,18 +134,18 @@ class App extends Component {
       })
       .then(() => {
         console.log(opponent, currentPlayer);
-        this.saveResult(opponent, currentPlayer);
-        this.updateLeaderboard(opponent, currentPlayer);
+        utils.saveResult(opponent, currentPlayer);
+        utils.updateLeaderboard(opponent, currentPlayer, leaderboard);
       });
 
       return;
 
     default:
       playingState = constants.INACTIVE;
-      this.updatePlayingState(opponent, playingState);
+      utils.updatePlayingState(opponent, playingState);
     }
 
-    this.updatePlayer({
+    utils.updatePlayer({
       ...currentPlayer,
       playingState,
     });
@@ -177,71 +153,23 @@ class App extends Component {
 
   handleLogOut() {
     this.setState({currentPlayerKey: null});
-
-    firebase.auth().signOut().then(() => {
-      console.log('logged out');
-    }).catch(error => {
-      console.log(error);
-      // An error happened.
-    });
+    utils.logOut();
   }
 
   selectOpponent(opponent) {
     const currentPlayer = this.currentPlayer();
 
-    this.updatePlayer({
+    utils.updatePlayer({
       ...opponent,
       playingState: constants.HAS_BEEN_SELECTED,
       opponent: currentPlayer.key
     });
 
-    this.updatePlayer({
+    utils.updatePlayer({
       ...currentPlayer,
       playingState: constants.HAS_SELECTED_OPPONENT,
       opponent: opponent.key
     });
-  }
-
-  addNewPlayer(player) {
-      const immediatelyAvailableReference = fire.push('players', {
-          data: player
-      });
-      this.addToLeaderboard(immediatelyAvailableReference.key);
-      //available immediately, you don't have to wait for the callback to be called
-      return immediatelyAvailableReference.key;
-  }
-
-  addToLeaderboard(playerKey) {
-      const immediatelyAvailableReference = fire.push('leaderboard', {
-          data: playerKey
-      });
-      //available immediately, you don't have to wait for the callback to be called
-      return immediatelyAvailableReference.key;
-  }
-
-  updatePlayer(player) {
-      return fire.update('players/' + player.key, {
-        data: player
-      });
-  }
-
-  updatePlayers(players) {
-    return fire.post('players', {
-      data: players
-    });
-  }
-  
-  updatePlayingState(player, playingState) {
-      this.updatePlayer({
-          ...player,
-          playingState
-      }) 
-  }
-
-  saveResult(winner, loser) {
-      fire.push('matches', {
-          data: {winner, loser}
-      });
   }
 
   bindPlayersToFirebase() {
@@ -262,13 +190,6 @@ class App extends Component {
 
   fetchPlayersFromFirebase() {
     return fire.fetch('players', {
-        context: this,
-        asArray: true
-      })
-  }
-  
-  fetchLeaderboardFromFirebase() {
-    return fire.fetch('leaderboard', {
         context: this,
         asArray: true
       })
