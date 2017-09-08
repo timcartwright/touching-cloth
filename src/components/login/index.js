@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
-import Section from './Section';
-import Button from './Button';
+import Section from '../presentation/Section';
+import Button from '../presentation/Button';
 import firebase from 'firebase';
 
 class Login extends Component {

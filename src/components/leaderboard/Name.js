@@ -6,5 +6,6 @@ const Name = styled.div`
     display: flex;
     flex: 1;
     height: 100%;
+    text-align: left;
 `
 export default Name;

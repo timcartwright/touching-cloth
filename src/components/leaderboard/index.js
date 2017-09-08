@@ -1,7 +1,7 @@
 import React from 'react';
 import FlipMove from 'react-flip-move';
 import LeaderboardRow from './LeaderboardRow';
-import '../App.css';
+import '../../App.css';
 
 const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, selectOpponent}) => {
 

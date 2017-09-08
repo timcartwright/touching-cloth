@@ -1,18 +1,18 @@
 import React, { Component } from 'react';
 import fire from './fire';
 import firebase from 'firebase';
-import ContentWrap from './components/ContentWrap';
-import Topbar from './components/Topbar';
-import Header from './components/Header';
-import PageTitle from './components/PageTitle';
-import Button from './components/Button';
-import Section from './components/Section';
-import Wrap from './components/Wrap';
-import Leaderboard from './components/Leaderboard';
-import Login from './components/Login';
+import ContentWrap from './components/presentation/ContentWrap';
+import Topbar from './components/presentation/Topbar';
+import Header from './components/presentation/Header';
+import PageTitle from './components/presentation/PageTitle';
+import Button from './components/presentation/Button';
+import Section from './components/presentation/Section';
+import Wrap from './components/presentation/Wrap';
+import Leaderboard from './components/leaderboard';
+import Login from './components/login';
 import constants from './constants';
 import Logo from './img/tc-logo.svg';
-import LeaderboardRow from './components/LeaderboardRow';
+import LeaderboardRow from './components/leaderboard/LeaderboardRow';
 
 class App extends Component {
 
@@ -57,9 +57,13 @@ class App extends Component {
         }
       });
 
+      console.log(winnerIndex, loserIndex);
+
       if (winnerIndex > loserIndex) {
         const newLeaderboard = [...leaderboard.slice(0,loserIndex), winner.key, ...leaderboard.slice(loserIndex, winnerIndex), ...leaderboard.slice(winnerIndex + 1)];
-        fire.update('leaderboard', {
+        console.log(newLeaderboard);
+      
+        fire.post('leaderboard', {
             data: newLeaderboard
         });
       }
@@ -153,6 +157,7 @@ class App extends Component {
         })
       })
       .then(() => {
+        console.log(opponent, currentPlayer);
         this.saveResult(opponent, currentPlayer);
         this.updateLeaderboard(opponent, currentPlayer);
       });
@@ -347,6 +352,7 @@ class App extends Component {
                   Here's where you are at the moment
               </ContentWrap>
             </Section>
+
             <Section currentPlayer>
               <LeaderboardRow
                   selectable={false}
@@ -354,16 +360,19 @@ class App extends Component {
                   rank={currentPlayerRank}
               />
             </Section>
+
             <Section>
               <div className="leaderboard__title">
                   {introText}
               </div>
             </Section>
+
             <Section>
               <Button onClick={this.handleButtonClick.bind(this)}>
                 {buttonText}
               </Button>
             </Section>
+
             <Leaderboard
               currentPlayer={currentPlayer}
               isSelectingOpponent={isSelectingOpponent}
@@ -371,6 +380,7 @@ class App extends Component {
               players={players}
               selectOpponent={this.selectOpponent.bind(this)}
             />
+
           </div>
         :
           <Login />

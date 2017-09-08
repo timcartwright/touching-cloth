@@ -3,13 +3,13 @@ import Avatar from './Avatar';
 import Rank from './Rank';
 import Name from './Name';
 import Streak from './Streak';
-import '../App.css';
+import '../../App.css';
 
 class LeaderboardRow extends Component {
 
     render() {
         const {rank, player, selectable, selectOpponent} = this.props;
-        const {displayName, streak} = player;
+        const {displayName, playingState, streak} = player;
 
         return (
             <div
@@ -17,11 +17,22 @@ class LeaderboardRow extends Component {
                 onClick={selectable && selectOpponent}
             >
                 <Rank>{rank}</Rank>
+                
                 <Avatar player={player}></Avatar>
-                <Name>{displayName}</Name>
+
+                <Name>
+                    <div>
+                        {displayName}
+                        <div>
+                            <sub>{playingState}</sub>
+                        </div>
+                    </div>
+                </Name>
+
                 <div style={{flex: '0 0 72px', textAlign: 'right'}}>
                     {streak && <Streak streak={streak.slice(-5)} />}
                 </div>
+
             </div>
         );
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import InlineFlex from './InlineFlex';
+import InlineFlex from '../presentation/InlineFlex';
 
 
 const Avatar = ({player}) => {
