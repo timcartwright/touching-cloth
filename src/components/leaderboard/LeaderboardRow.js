@@ -3,6 +3,7 @@ import Avatar from './Avatar';
 import Rank from './Rank';
 import Name from './Name';
 import Streak from './Streak';
+import WinRatio from './WinRatio';
 import '../../App.css';
 
 class LeaderboardRow extends Component {
@@ -32,6 +33,10 @@ class LeaderboardRow extends Component {
                 <div style={{flex: '0 0 72px', textAlign: 'right'}}>
                     {streak && <Streak streak={streak.slice(-5)} />}
                 </div>
+
+                {/* <div style={{flex: '0 0 72px', textAlign: 'right'}}>
+                    {streak && <WinRatio results={streak} />}
+                </div> */}
 
             </div>
         );
