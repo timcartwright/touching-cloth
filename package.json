@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "auth0-js": "^8.11.2",
     "firebase": "^4.2.0",
+    "history": "^4.7.2",
     "re-base": "^3.0.3",
     "react": "^15.6.1",
     "react-dom": "^15.6.1",
     "react-flip-move": "^2.9.15",
+    "react-router": "^4.2.0",
+    "react-router-dom": "^4.2.2",
     "styled-components": "^2.1.2"
   },
   "devDependencies": {

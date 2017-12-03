@@ -7,8 +7,11 @@ import '../../App.css';
 
 class LeaderboardRow extends Component {
 
+    
     render() {
         const {rank, player, selectable, selectOpponent} = this.props;
+        if (!player) return null;
+
         const {displayName, playingState, streak} = player;
 
         return (

@@ -3,9 +3,17 @@ import FlipMove from 'react-flip-move';
 import LeaderboardRow from './LeaderboardRow';
 import '../../App.css';
 
-const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, selectOpponent}) => {
+const Leaderboard = ({currentPlayer, isSelectingOpponent, players, selectOpponent}) => {
 
-    if (!leaderboard || !players) return null;
+    if (!players) return null;
+
+    const leaderboard = players.slice().sort(function(a, b) {
+        if (a.ladderRank < b.ladderRank)
+            return -1;
+        if (a.ladderRank > b.ladderRank)
+            return 1;
+        return 0;
+    });
 
     return (
         <div className={isSelectingOpponent ? 'leaderboard leaderboard--active' : 'leaderboard'}>
@@ -15,9 +23,8 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, s
                 easing="ease-out"
                 staggerDelayBy={100}
             >
-                {leaderboard.map((playerKey, index) => {
-                    const player = players.find(p => p.key === playerKey);
-                    const {key, playingState} = player;
+                {leaderboard.map(player => {
+                    const {key, ladderRank, playingState} = player;
                     const isCurrentPlayer = key === currentPlayer.key;
                     const playerIsInactive = playingState === 'inactive';
                     const selectable = isSelectingOpponent && playerIsInactive && !isCurrentPlayer;
@@ -25,9 +32,9 @@ const Leaderboard = ({currentPlayer, isSelectingOpponent,leaderboard, players, s
                     return (
                         <LeaderboardRow
                             selectable={selectable}
-                            key={key}
+                            key={ladderRank}
                             player={player}
-                            rank={index + 1}
+                            rank={ladderRank}
                             selectOpponent={selectOpponent.bind(null, player)}
                         />
                     );

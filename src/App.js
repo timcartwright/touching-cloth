@@ -1,6 +1,4 @@
 import React, { Component } from 'react';
-import fire from './fire';
-import firebase from 'firebase';
 import ContentWrap from './components/presentation/ContentWrap';
 import Topbar from './components/presentation/Topbar';
 import Header from './components/presentation/Header';
@@ -14,6 +12,7 @@ import constants from './constants';
 import Logo from './img/tc-logo.svg';
 import LeaderboardRow from './components/leaderboard/LeaderboardRow';
 import utils from './helpers';
+import callApi from './callApi';
 
 class App extends Component {
 
@@ -22,6 +21,7 @@ class App extends Component {
 
     this.state = {
       currentPlayerKey: null,
+      currentPlayer: null,
       players: null,
       leaderboard: null,
       loading: true
@@ -29,58 +29,62 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.bindLeaderboardToFirebase();
-    this.fetchPlayersFromFirebase()
-      .then(players => {
-        this.setState({players}, () => {
-          this.listenForAuth();
-          this.bindPlayersToFirebase();
-          this.setState({loading: false});
-        })
-      });
+      if (this.props.auth.isAuthenticated() && this.props.location.state.players) {
+        this.setState({
+          currentPlayer: this.props.location.state.currentPlayer,
+          players: this.props.location.state.players
+        });
+      }
+  }
+
+  componentWillReceiveProps(nextProps) {
+      if (nextProps.auth.isAuthenticated() && !this.state.players && nextProps.location.state.players) {
+        this.setState({
+          currentPlayer: nextProps.location.state.currentPlayer,
+          players: nextProps.location.state.players
+        });
+      }
   }
 
   currentPlayer() {
-    const {currentPlayerKey, players} = this.state;
-    return players.find(player => player.key === currentPlayerKey);
+    const {players} = this.state;
+    return utils.currentPlayer(this.state.currentPlayerKey, players);
   }
 
   listenForAuth() {
-    firebase.auth().onAuthStateChanged(user => {
-      this.fetchPlayersFromFirebase()
-      .then(players => {
-        if (user) {
-          let currentPlayer = players.find(player => player.email === user.email);
-          console.log('Logged in:', user);
+      // this.fetchPlayers()
+      // .then(players => {
+      //   if (user) {
+      //     let currentPlayer = players.find(player => player.email === user.email);
+      //     console.log('Logged in:', user);
 
-          if (!currentPlayer && !this.state.currentPlayerKey) {
-              console.log('Adding new player');
+      //     if (!currentPlayer && !this.state.currentPlayerKey) {
+      //         console.log('Adding new player');
 
-              currentPlayer = {
-                avatar: user.photoURL,
-                displayName: user.displayName,
-                email: user.email,
-                playingState: constants.INACTIVE
-              };
+      //         currentPlayer = {
+      //           avatar: user.photoURL,
+      //           displayName: user.displayName,
+      //           email: user.email,
+      //           playingState: constants.INACTIVE
+      //         };
 
-              const key = utils.addNewPlayer(currentPlayer);
-              this.setState({currentPlayerKey: key});
+      //         const key = utils.addNewPlayer(currentPlayer);
+      //         this.setState({currentPlayerKey: key});
 
-          } else {
-            if (!currentPlayer.avatar) {
-              currentPlayer.avatar = user.photoURL;
-              utils.updatePlayer(currentPlayer);
-            }
-            this.setState({currentPlayerKey: currentPlayer.key});
-          }
-        }
-      })
-    });
+      //     } else {
+      //       if (!currentPlayer.avatar) {
+      //         currentPlayer.avatar = user.photoURL;
+      //         utils.updatePlayer(currentPlayer);
+      //       }
+      //       this.setState({currentPlayerKey: currentPlayer.key});
+      //     }
+      //   }
+      // })
   }
 
   handleButtonClick() {
-    const {leaderboard, players} = this.state;
-    const currentPlayer = this.currentPlayer();
+    const {currentPlayer, players} = this.state;
+    // const currentPlayer = this.currentPlayer();
     let opponent;
     let playingState;
 
@@ -135,7 +139,7 @@ class App extends Component {
       .then(() => {
         console.log(opponent, currentPlayer);
         utils.saveResult(opponent, currentPlayer);
-        utils.updateLeaderboard(opponent, currentPlayer, leaderboard);
+        utils.updateLeaderboard(opponent, currentPlayer);
       });
 
       return;
@@ -172,45 +176,45 @@ class App extends Component {
     });
   }
 
-  bindPlayersToFirebase() {
-    return fire.bindToState('players', {
-      context: this,
-      state: 'players',
-      asArray: true
-    })
-  }
+  fetchPlayers() {
+    callApi('GET', 'players')
+    .then(response => {
+        this.setState({
+          loading: false,
+          currentPlayerKey: localStorage.getItem('user_id'),
+          players: response.body
+      });
 
-  bindLeaderboardToFirebase() {
-    return fire.bindToState('leaderboard', {
-      context: this,
-      state: 'leaderboard',
-      asArray: true
-    })
-  }
-
-  fetchPlayersFromFirebase() {
-    return fire.fetch('players', {
-        context: this,
-        asArray: true
-      })
+      }
+    )
+    .catch(function(err) {
+      console.log('Fetch Error :-S', err);
+    });
   }
 
   render() {
-    const {leaderboard, loading, players} = this.state;
+    const { isAuthenticated } = this.props.auth;
+    const {currentPlayer, leaderboard, loading, players} = this.state;
     let opponent;
     let introText, buttonText;
     let isSelectingOpponent = false;
     let currentPlayerRank;
+    // let currentPlayer;
 
-    if (loading) {
-      return null;
-    }
+    console.log(players);
+    console.log(currentPlayer);
 
-    const currentPlayer = this.currentPlayer();
+    // if (loading) {
+    //   return null;
+    // }
+
+    if (players) {
+
+    // currentPlayer = this.currentPlayer();
 
     if (currentPlayer) {
       isSelectingOpponent = currentPlayer.playingState === constants.SELECTING_OPPONENT;
-      currentPlayerRank = leaderboard.indexOf(currentPlayer.key) + 1;
+      currentPlayerRank = currentPlayer.ladderRank;
 
       if (currentPlayer.opponent) {
         opponent = players.find(player => player.key === currentPlayer.opponent);
@@ -249,6 +253,8 @@ class App extends Component {
       introText = 'Current Standings';
     }
 
+  }
+
     return (
       <Wrap>
         {currentPlayer &&
@@ -266,7 +272,7 @@ class App extends Component {
           </PageTitle>
         </Header>
 
-        {currentPlayer ?
+        {isAuthenticated() &&
           <div>
             <Section intro>
               <ContentWrap>
@@ -297,15 +303,14 @@ class App extends Component {
             <Leaderboard
               currentPlayer={currentPlayer}
               isSelectingOpponent={isSelectingOpponent}
-              leaderboard={leaderboard}
               players={players}
               selectOpponent={this.selectOpponent.bind(this)}
             />
 
           </div>
-        :
-          <Login />
         }
+
+        {!isAuthenticated() && <Login />}
 
       </Wrap>
     );

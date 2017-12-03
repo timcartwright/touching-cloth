@@ -1,28 +1,24 @@
 import React, {Component} from 'react';
 import Section from '../presentation/Section';
 import Button from '../presentation/Button';
-import firebase from 'firebase';
+import Auth from '../../auth';
+
+const auth = new Auth();
 
 class Login extends Component {
 
-    componentWillMount() {
-        this.provider = new firebase.auth.GoogleAuthProvider();
+    login() {
+        auth.login();
     }
-
-    signInWithGoogle() {
-        firebase.auth().signInWithPopup(this.provider).then(result => {
-            // const token = result.credential.accessToken;
-            // const user = result.user;
-        }).catch(error => {
-            const {code, message, email, credential} = error;
-            console.log(code, message, email, credential);
-        });
+    
+    logout() {
+        this.props.auth.logout();
     }
 
     render() {
         return (
             <Section>
-                <Button onClick={this.signInWithGoogle.bind(this)}>
+                <Button onClick={this.login.bind(this)}>
                     Login
                 </Button>
             </Section>

@@ -1,5 +1,6 @@
 import fire from './fire';
 import firebase from 'firebase';
+import callApi from './callApi';
 
 let exports = {
 
@@ -44,6 +45,18 @@ let exports = {
         return immediatelyAvailableReference.key;
     },
 
+    currentPlayer(currentPlayerKey, players) {
+        if (!players || !currentPlayerKey) {
+            return false;
+        }
+        
+        return players.find(player => player.key === currentPlayerKey);
+    },
+
+    getPlayers() {
+        return callApi('GET', 'players');
+    },
+
     logOut() {
         firebase.auth().signOut().then(() => {
             console.log('logged out');
@@ -54,9 +67,7 @@ let exports = {
     },
 
     updatePlayer(player) {
-        return fire.update('players/' + player.key, {
-          data: player
-        });
+        return callApi('PUT', 'players/' + player.id, player);
     },
   
     updatePlayers(players) {
